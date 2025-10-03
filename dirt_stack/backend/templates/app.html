@@ -1,0 +1,17 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIRT Stack - Django + Inertia + React + Tailwind</title>
+    <link rel="stylesheet" href="{% static 'assets/main-0PPXPFqj.css' %}">
+    {% block inertia_head %}{% endblock inertia_head %}
+</head>
+<body>
+    {% block inertia %}
+        <div id="app" data-page="{{ page|escape }}"></div>
+    {% endblock inertia %}
+    <script type="module" src="{% static 'assets/main-C9UL9x3X.js' %}"></script>
+</body>
+</html>
