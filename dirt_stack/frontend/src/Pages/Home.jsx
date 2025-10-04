@@ -1,7 +1,5 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "@inertiajs/react";
 import { createPageUrl } from "@/utils";
 import { Ticket, Clock, Shield, Star, ArrowRight, Users } from "lucide-react";
@@ -19,10 +17,10 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Badge className="bg-blue-100 text-blue-800 font-semibold mb-4 px-4 py-2">
+              <div className="bg-blue-100 text-blue-800 font-semibold mb-4 px-4 py-2 rounded-full inline-flex items-center">
                 <Ticket className="w-4 h-4 mr-2" />
                 Professional Ticketing Services
-              </Badge>
+              </div>
               <h1 className="text-4xl lg:text-6xl font-bold text-blue-900 mb-6 leading-tight">
                 Welcome to{" "}
                 <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
@@ -125,14 +123,14 @@ export default function Home() {
               Join thousands of event organizers who trust our platform
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-blue-800 hover:bg-blue-50 font-bold px-8 py-4 rounded-xl">
+              <button className="bg-white text-blue-800 hover:bg-blue-50 font-bold px-8 py-4 rounded-xl flex items-center justify-center transition-colors">
                 <Ticket className="w-5 h-5 mr-2" />
                 Create Event
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-800 font-bold px-8 py-4 rounded-xl">
+              </button>
+              <button className="border-2 border-white text-white hover:bg-white hover:text-blue-800 font-bold px-8 py-4 rounded-xl flex items-center justify-center transition-colors">
                 Browse Events
                 <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
+              </button>
             </div>
           </motion.div>
         </div>
