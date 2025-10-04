@@ -1,0 +1,64 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: dirt_stack/frontend/package-lock.json
+    
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('dirt_stack/backend/requirements.txt') }}
+    
+    - name: Install Python dependencies
+      run: |
+        cd dirt_stack/backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Install Node dependencies
+      run: |
+        cd dirt_stack/frontend
+        npm ci
+    
+    - name: Run Django migrations
+      run: |
+        cd dirt_stack/backend
+        python manage.py migrate
+    
+    - name: Build frontend
+      run: |
+        cd dirt_stack/frontend
+        npm run build
+    
+    - name: Update Django assets
+      run: |
+        cd dirt_stack
+        python update_assets.py
+    
+    - name: Collect static files
+      run: |
+        cd dirt_stack/backend
+        python manage.py collectstatic --noinput
