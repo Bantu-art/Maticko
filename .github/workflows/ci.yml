@@ -53,6 +53,11 @@ jobs:
         cd dirt_stack/frontend
         npm run build
     
+    - name: Setup Django template
+      run: |
+        cd dirt_stack/backend/templates
+        cp app.template.html app.html
+    
     - name: Update Django assets
       run: |
         cd dirt_stack
