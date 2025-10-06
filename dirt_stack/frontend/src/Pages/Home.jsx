@@ -129,7 +129,13 @@ export default function Home() {
 
       {/* Services Section */}
       <section className="px-6 py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-neutral-950"></div>
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('/media/backv1.png')`
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-black/60"></div>
         
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="mb-16">
@@ -151,7 +157,7 @@ export default function Home() {
               <div 
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: `url('https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80')`
+                  backgroundImage: `url('/media/footer.svg')`
                 }}
               ></div>
               <div className="absolute inset-0 bg-gradient-to-br from-neutral-800/90 to-neutral-900/90"></div>
@@ -177,7 +183,7 @@ export default function Home() {
               <div 
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: `url('https://images.unsplash.com/photo-1511795409834-ef04bbd61622?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80')`
+                  backgroundImage: `url('/media/footer.svg')`
                 }}
               ></div>
               <div className="absolute inset-0 bg-gradient-to-br from-neutral-800/90 to-neutral-900/90"></div>
@@ -203,7 +209,7 @@ export default function Home() {
               <div 
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: `url('https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80')`
+                  backgroundImage: `url('/media/footer.svg')`
                 }}
               ></div>
               <div className="absolute inset-0 bg-gradient-to-br from-neutral-800/90 to-neutral-900/90"></div>
@@ -229,7 +235,7 @@ export default function Home() {
               <div 
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: `url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80')`
+                  backgroundImage: `url('/media/footer.svg')`
                 }}
               ></div>
               <div className="absolute inset-0 bg-gradient-to-br from-neutral-800/90 to-neutral-900/90"></div>
