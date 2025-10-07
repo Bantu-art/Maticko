@@ -1,11 +1,12 @@
 name: CI/CD Pipeline
 
 on:
-  push:
-    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ main, test, dev ]
+    types: [ closed ]
+
+env:
+  AWS_REGION: us-east-1
 
 jobs:
   test-and-build:
@@ -67,3 +68,57 @@ jobs:
       run: |
         cd dirt_stack/backend
         python manage.py collectstatic --noinput
+
+  deploy:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Determine environment
+      id: env
+      run: |
+        if [ "${{ github.event.pull_request.base.ref }}" == "main" ]; then
+          echo "environment=prod" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event.pull_request.base.ref }}" == "test" ]; then
+          echo "environment=test" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event.pull_request.base.ref }}" == "dev" ]; then
+          echo "environment=dev" >> $GITHUB_OUTPUT
+        else
+          echo "environment=dev" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Deploy to AWS
+      run: |
+        cd infrastructure
+        chmod +x deploy-layered.sh
+        ./deploy-layered.sh ${{ steps.env.outputs.environment }}
+    
+    - name: Update deployment status
+      run: |
+        echo "🚀 Deployed to ${{ steps.env.outputs.environment }} environment"
+        echo "📍 Branch: ${{ github.ref_name }}"
+        echo "🔗 Commit: ${{ github.sha }}"
+
+  notify:
+    needs: [test-and-build, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Deployment notification
+      run: |
+        if [ "${{ needs.deploy.result }}" == "success" ]; then
+          echo "✅ Deployment successful to ${{ steps.env.outputs.environment }}"
+        else
+          echo "❌ Deployment failed"
+        fi

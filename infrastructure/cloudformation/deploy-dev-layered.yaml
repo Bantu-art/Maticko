@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Ma-Ticko Dev Environment - Layered Deployment Wrapper'
+
+Parameters:
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Password for the database master user
+
+Resources:
+  NetworkingStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${AWS::Region}/ma-ticko-templates/01-networking.yaml'
+      Parameters:
+        Environment: dev
+
+  ApplicationStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: NetworkingStack
+    Properties:
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${AWS::Region}/ma-ticko-templates/02-application.yaml'
+      Parameters:
+        Environment: dev
+        GitHubBranch: dev
+        NetworkingStackName: !Ref NetworkingStack
+
+  DatabaseStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: NetworkingStack
+    Properties:
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${AWS::Region}/ma-ticko-templates/03-database.yaml'
+      Parameters:
+        Environment: dev
+        NetworkingStackName: !Ref NetworkingStack
+        DatabasePassword: !Ref DatabasePassword
+
+Outputs:
+  LoadBalancerURL:
+    Description: URL of the load balancer
+    Value: !GetAtt ApplicationStack.Outputs.LoadBalancerURL
+  
+  DatabaseEndpoint:
+    Description: RDS Database Endpoint
+    Value: !GetAtt DatabaseStack.Outputs.DatabaseEndpoint

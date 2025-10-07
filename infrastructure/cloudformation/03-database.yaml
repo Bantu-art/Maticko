@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Ma-Ticko Database Layer - RDS PostgreSQL'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, test, prod]
+    Description: Environment name
+  
+  NetworkingStackName:
+    Type: String
+    Description: Name of the networking stack to import values from
+  
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Password for the database master user
+
+Mappings:
+  EnvironmentConfig:
+    dev:
+      InstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      MultiAZ: false
+    test:
+      InstanceClass: db.t3.small
+      AllocatedStorage: 50
+      MultiAZ: false
+    prod:
+      InstanceClass: db.t3.medium
+      AllocatedStorage: 100
+      MultiAZ: true
+
+Resources:
+  # RDS Database Instance
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub 'ma-ticko-${Environment}-db'
+      DBName: maticko
+      Engine: postgres
+      EngineVersion: '15.4'
+      DBInstanceClass: !FindInMap [EnvironmentConfig, !Ref Environment, InstanceClass]
+      AllocatedStorage: !FindInMap [EnvironmentConfig, !Ref Environment, AllocatedStorage]
+      StorageType: gp2
+      StorageEncrypted: true
+      MasterUsername: postgres
+      MasterUserPassword: !Ref DatabasePassword
+      VPCSecurityGroups:
+        - Fn::ImportValue: !Sub '${NetworkingStackName}-DatabaseSecurityGroup-ID'
+      DBSubnetGroupName:
+        Fn::ImportValue: !Sub '${NetworkingStackName}-DatabaseSubnetGroup-Name'
+      MultiAZ: !FindInMap [EnvironmentConfig, !Ref Environment, MultiAZ]
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: "03:00-04:00"
+      PreferredMaintenanceWindow: "sun:04:00-sun:05:00"
+      DeletionProtection: !If [IsProd, true, false]
+      Tags:
+        - Key: Name
+          Value: !Sub 'ma-ticko-${Environment}-database'
+        - Key: Environment
+          Value: !Ref Environment
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+Outputs:
+  DatabaseEndpoint:
+    Description: RDS Database Endpoint
+    Value: !GetAtt Database.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-DatabaseEndpoint'
+  
+  DatabasePort:
+    Description: RDS Database Port
+    Value: !GetAtt Database.Endpoint.Port
+    Export:
+      Name: !Sub '${AWS::StackName}-DatabasePort'
+  
+  DatabaseName:
+    Description: Database Name
+    Value: maticko
+    Export:
+      Name: !Sub '${AWS::StackName}-DatabaseName'
