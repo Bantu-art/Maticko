@@ -18,19 +18,42 @@ Parameters:
 Mappings:
   EnvironmentConfig:
     dev:
-      InstanceType: t3.micro
+      InstanceType: t3.small
       MinSize: 1
       MaxSize: 2
     test:
-      InstanceType: t3.small
+      InstanceType: t3.medium
       MinSize: 1
       MaxSize: 5
     prod:
-      InstanceType: t3.medium
+      InstanceType: t3.large
       MinSize: 2
       MaxSize: 10
 
 Resources:
+  # IAM Role for EC2 instances
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Name
+          Value: !Sub 'ma-ticko-${Environment}-ec2-role'
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2Role
+
   # Application Load Balancer
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -80,6 +103,8 @@ Resources:
       LaunchTemplateData:
         ImageId: ami-0c02fb55956c7d316  # Amazon Linux 2
         InstanceType: !FindInMap [EnvironmentConfig, !Ref Environment, InstanceType]
+        IamInstanceProfile:
+          Arn: !GetAtt EC2InstanceProfile.Arn
         SecurityGroupIds:
           - Fn::ImportValue: !Sub '${NetworkingStackName}-ApplicationSecurityGroup-ID'
         UserData:
@@ -161,7 +186,7 @@ Resources:
       TargetGroupARNs:
         - !Ref TargetGroup
       HealthCheckType: ELB
-      HealthCheckGracePeriod: 300
+      HealthCheckGracePeriod: 600
       Tags:
         - Key: Name
           Value: !Sub 'ma-ticko-${Environment}-asg'
