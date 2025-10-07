@@ -41,7 +41,7 @@ Resources:
       DBInstanceIdentifier: !Sub 'ma-ticko-${Environment}-db'
       DBName: maticko
       Engine: postgres
-      EngineVersion: '15.4'
+      EngineVersion: '15.7'
       DBInstanceClass: !FindInMap [EnvironmentConfig, !Ref Environment, InstanceClass]
       AllocatedStorage: !FindInMap [EnvironmentConfig, !Ref Environment, AllocatedStorage]
       StorageType: gp2

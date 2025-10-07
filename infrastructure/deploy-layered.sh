@@ -30,12 +30,17 @@ deploy_stack() {
     
     if aws cloudformation describe-stacks --stack-name "$stack_name" --region "$REGION" >/dev/null 2>&1; then
         echo "Stack $stack_name exists, updating..."
-        aws cloudformation update-stack \
+        if aws cloudformation update-stack \
             --stack-name "$stack_name" \
             --template-body "file://$template_file" \
             --parameters $parameters \
             --capabilities CAPABILITY_IAM \
-            --region "$REGION"
+            --region "$REGION" 2>&1 | grep -q "No updates are to be performed"; then
+            echo "Stack $stack_name is already up to date, skipping..."
+        else
+            echo "Waiting for stack $stack_name update to complete..."
+            aws cloudformation wait stack-update-complete --stack-name "$stack_name" --region "$REGION"
+        fi
     else
         echo "Stack $stack_name does not exist, creating..."
         aws cloudformation create-stack \
@@ -44,11 +49,9 @@ deploy_stack() {
             --parameters $parameters \
             --capabilities CAPABILITY_IAM \
             --region "$REGION"
+        echo "Waiting for stack $stack_name creation to complete..."
+        aws cloudformation wait stack-create-complete --stack-name "$stack_name" --region "$REGION"
     fi
-    
-    echo "Waiting for stack $stack_name to complete..."
-    aws cloudformation wait stack-create-complete --stack-name "$stack_name" --region "$REGION" 2>/dev/null || \
-    aws cloudformation wait stack-update-complete --stack-name "$stack_name" --region "$REGION"
     
     echo "Stack $stack_name deployed successfully!"
 }
