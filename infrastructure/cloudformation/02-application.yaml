@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Ma-Ticko Application Layer - ALB, ASG, EC2 Instances'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, test, prod]
+    Description: Environment name
+  
+  GitHubBranch:
+    Type: String
+    Description: GitHub branch for this environment
+  
+  NetworkingStackName:
+    Type: String
+    Description: Name of the networking stack to import values from
+
+Mappings:
+  EnvironmentConfig:
+    dev:
+      InstanceType: t3.micro
+      MinSize: 1
+      MaxSize: 2
+    test:
+      InstanceType: t3.small
+      MinSize: 1
+      MaxSize: 5
+    prod:
+      InstanceType: t3.medium
+      MinSize: 2
+      MaxSize: 10
+
+Resources:
+  # Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub 'ma-ticko-${Environment}-alb'
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - Fn::ImportValue: !Sub '${NetworkingStackName}-PublicSubnet1-ID'
+        - Fn::ImportValue: !Sub '${NetworkingStackName}-PublicSubnet2-ID'
+      SecurityGroups:
+        - Fn::ImportValue: !Sub '${NetworkingStackName}-ALBSecurityGroup-ID'
+      Tags:
+        - Key: Name
+          Value: !Sub 'ma-ticko-${Environment}-alb'
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'ma-ticko-${Environment}-tg'
+      Port: 8000
+      Protocol: HTTP
+      VpcId:
+        Fn::ImportValue: !Sub '${NetworkingStackName}-VPC-ID'
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  # Launch Template
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub 'ma-ticko-${Environment}-lt'
+      LaunchTemplateData:
+        ImageId: ami-0c02fb55956c7d316  # Amazon Linux 2
+        InstanceType: !FindInMap [EnvironmentConfig, !Ref Environment, InstanceType]
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub '${NetworkingStackName}-ApplicationSecurityGroup-ID'
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y git python3 python3-pip nodejs npm nginx
+            
+            # Clone repository
+            cd /home/ec2-user
+            git clone https://github.com/Bantu-art/Maticko.git
+            cd Maticko
+            git checkout ${GitHubBranch}
+            
+            # Setup Python environment
+            cd dirt_stack/backend
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install -r requirements.txt
+            
+            # Setup Node.js
+            cd ../frontend
+            npm install
+            npm run build
+            
+            # Update assets
+            cd ..
+            python3 update_assets.py
+            
+            # Configure Django
+            cd backend
+            python manage.py migrate
+            python manage.py collectstatic --noinput
+            
+            # Start Django
+            source venv/bin/activate
+            nohup python manage.py runserver 0.0.0.0:8000 &
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub 'ma-ticko-${Environment}-instance'
+              - Key: Environment
+                Value: !Ref Environment
+
+  # Auto Scaling Group
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: !FindInMap [EnvironmentConfig, !Ref Environment, MinSize]
+        MaxBatchSize: 1
+        PauseTime: PT5M
+        WaitOnResourceSignals: false
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+    Properties:
+      AutoScalingGroupName: !Sub 'ma-ticko-${Environment}-asg'
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: !FindInMap [EnvironmentConfig, !Ref Environment, MinSize]
+      MaxSize: !FindInMap [EnvironmentConfig, !Ref Environment, MaxSize]
+      DesiredCapacity: !FindInMap [EnvironmentConfig, !Ref Environment, MinSize]
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub '${NetworkingStackName}-PrivateSubnet1-ID'
+        - Fn::ImportValue: !Sub '${NetworkingStackName}-PrivateSubnet2-ID'
+      TargetGroupARNs:
+        - !Ref TargetGroup
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300
+      Tags:
+        - Key: Name
+          Value: !Sub 'ma-ticko-${Environment}-asg'
+          PropagateAtLaunch: false
+
+Outputs:
+  LoadBalancerURL:
+    Description: URL of the load balancer
+    Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}'
+    Export:
+      Name: !Sub '${AWS::StackName}-LoadBalancerURL'
+  
+  LoadBalancerDNSName:
+    Description: DNS name of the load balancer
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub '${AWS::StackName}-LoadBalancerDNSName'
