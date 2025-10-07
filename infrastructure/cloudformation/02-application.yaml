@@ -85,14 +85,19 @@ Resources:
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash
+            exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+            
             yum update -y
-            yum install -y git python3 python3-pip nodejs npm nginx
+            yum install -y git python3 python3-pip nodejs npm
             
             # Clone repository
             cd /home/ec2-user
             git clone https://github.com/Bantu-art/Maticko.git
             cd Maticko
             git checkout ${GitHubBranch}
+            
+            # Fix ALLOWED_HOSTS
+            sed -i "s/ALLOWED_HOSTS = \[.*\]/ALLOWED_HOSTS = ['*']/" dirt_stack/backend/dirt_project/settings.py
             
             # Setup Python environment
             cd dirt_stack/backend
@@ -111,12 +116,14 @@ Resources:
             
             # Configure Django
             cd backend
+            source venv/bin/activate
             python manage.py migrate
             python manage.py collectstatic --noinput
             
             # Start Django
-            source venv/bin/activate
-            nohup python manage.py runserver 0.0.0.0:8000 &
+            nohup python manage.py runserver 0.0.0.0:8000 > /var/log/django.log 2>&1 &
+            
+            echo "Setup complete" >> /var/log/user-data.log
         TagSpecifications:
           - ResourceType: instance
             Tags:
