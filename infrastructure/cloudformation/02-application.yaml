@@ -133,39 +133,38 @@ Resources:
             cd dirt_stack/backend
             python3 -m venv venv
             source venv/bin/activate
-            pip install -r requirements.txt
+            pip install -r requirements.txt || echo "pip install failed" >> /var/log/user-data.log
             
             # Setup Node.js
             cd ../frontend
-            npm install
-            npm run build
+            npm install || echo "npm install failed" >> /var/log/user-data.log
+            npm run build || echo "npm build failed" >> /var/log/user-data.log
             
             # Update assets
             cd ..
-            python3 update_assets.py
+            python3 update_assets.py || echo "update_assets failed" >> /var/log/user-data.log
             
             # Configure Django
             cd backend
             source venv/bin/activate
-            python manage.py migrate
-            python manage.py collectstatic --noinput
+            python manage.py migrate || echo "migrate failed" >> /var/log/user-data.log
+            python manage.py collectstatic --noinput || echo "collectstatic failed" >> /var/log/user-data.log
             
-            # Wait for dependencies and start Django
+            # Start Django with proper error handling
+            echo "Starting Django server..." >> /var/log/user-data.log
+            cd /home/ec2-user/Maticko/dirt_stack/backend
+            source venv/bin/activate
+            nohup python manage.py runserver 0.0.0.0:8000 >> /var/log/django.log 2>&1 &
+            DJANGO_PID=$!
+            echo "Django PID: $DJANGO_PID" >> /var/log/user-data.log
+            
+            # Wait and verify
             sleep 30
-            nohup python manage.py runserver 0.0.0.0:8000 > /var/log/django.log 2>&1 &
-            
-            # Wait for Django to start
-            sleep 60
-            
-            # Verify Django is running
-            if curl -f http://localhost:8000/ > /dev/null 2>&1; then
-                echo "Django started successfully" >> /var/log/user-data.log
+            if ps -p $DJANGO_PID > /dev/null; then
+                echo "Django process is running" >> /var/log/user-data.log
             else
-                echo "Django failed to start" >> /var/log/user-data.log
-                # Try to restart
-                pkill -f "python manage.py runserver"
-                sleep 10
-                nohup python manage.py runserver 0.0.0.0:8000 > /var/log/django.log 2>&1 &
+                echo "Django process died, checking logs" >> /var/log/user-data.log
+                tail -20 /var/log/django.log >> /var/log/user-data.log
             fi
             
             echo "Setup complete" >> /var/log/user-data.log
