@@ -83,10 +83,12 @@ Resources:
         Fn::ImportValue: !Sub '${NetworkingStackName}-VPC-ID'
       HealthCheckPath: /
       HealthCheckProtocol: HTTP
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
+      HealthCheckIntervalSeconds: 60
+      HealthCheckTimeoutSeconds: 30
       HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 3
+      UnhealthyThresholdCount: 5
+      Matcher:
+        HttpCode: '200,301,302'
 
   ALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -148,8 +150,23 @@ Resources:
             python manage.py migrate
             python manage.py collectstatic --noinput
             
-            # Start Django
+            # Wait for dependencies and start Django
+            sleep 30
             nohup python manage.py runserver 0.0.0.0:8000 > /var/log/django.log 2>&1 &
+            
+            # Wait for Django to start
+            sleep 60
+            
+            # Verify Django is running
+            if curl -f http://localhost:8000/ > /dev/null 2>&1; then
+                echo "Django started successfully" >> /var/log/user-data.log
+            else
+                echo "Django failed to start" >> /var/log/user-data.log
+                # Try to restart
+                pkill -f "python manage.py runserver"
+                sleep 10
+                nohup python manage.py runserver 0.0.0.0:8000 > /var/log/django.log 2>&1 &
+            fi
             
             echo "Setup complete" >> /var/log/user-data.log
         TagSpecifications:
@@ -189,7 +206,7 @@ Resources:
       TargetGroupARNs:
         - !Ref TargetGroup
       HealthCheckType: ELB
-      HealthCheckGracePeriod: 600
+      HealthCheckGracePeriod: 900
       Tags:
         - Key: Name
           Value: !Sub 'ma-ticko-${Environment}-asg'
