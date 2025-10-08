@@ -20,7 +20,7 @@ Mappings:
     dev:
       InstanceType: m7i-flex.large
       MinSize: 2
-      MaxSize: 4
+      MaxSize: 5
       DesiredCapacity: 2
     test:
       InstanceType: m7i-flex.large
