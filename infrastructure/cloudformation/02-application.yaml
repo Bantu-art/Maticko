@@ -23,15 +23,13 @@ Mappings:
       MaxSize: 5
       DesiredCapacity: 2
     test:
-      InstanceType: m7i-flex.large
+      InstanceType: t3.small
+      MinSize: 1
+      MaxSize: 3
+    prod:
+      InstanceType: t3.medium
       MinSize: 2
       MaxSize: 6
-      DesiredCapacity: 3
-    prod:
-      InstanceType: m7i-flex.large
-      MinSize: 3
-      MaxSize: 12
-      DesiredCapacity: 4
 
 Resources:
   # IAM Role for EC2 instances
@@ -110,6 +108,12 @@ Resources:
         InstanceType: !FindInMap [EnvironmentConfig, !Ref Environment, InstanceType]
         IamInstanceProfile:
           Arn: !GetAtt EC2InstanceProfile.Arn
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: 12
+              VolumeType: gp3
+              DeleteOnTermination: true
         SecurityGroupIds:
           - Fn::ImportValue: !Sub '${NetworkingStackName}-ApplicationSecurityGroup-ID'
         UserData:
@@ -118,11 +122,12 @@ Resources:
             exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
             
             yum update -y
-            yum install -y git python3 python3-pip
+            yum install -y docker git
             
-            # Install Node.js 18
-            curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
-            yum install -y nodejs
+            # Start Docker service
+            systemctl start docker
+            systemctl enable docker
+            usermod -a -G docker ec2-user
             
             # Clone repository
             cd /home/ec2-user
@@ -130,51 +135,13 @@ Resources:
             cd Maticko
             git checkout ${GitHubBranch}
             
-            # Fix ALLOWED_HOSTS
-            sed -i "s/ALLOWED_HOSTS = \[.*\]/ALLOWED_HOSTS = ['*']/" dirt_stack/backend/dirt_project/settings.py
+            # Build Docker image
+            docker build -t ma-ticko-app .
             
-            # Setup Python environment
-            cd dirt_stack/backend
-            python3 -m venv venv
-            source venv/bin/activate
-            pip install --upgrade pip
-            pip install Django==4.2.16 || echo "Django install failed" >> /var/log/user-data.log
-            pip install -r requirements.txt --no-deps || echo "requirements install failed" >> /var/log/user-data.log
-            pip install asgiref==3.7.2 || echo "asgiref install failed" >> /var/log/user-data.log
+            # Run Docker container
+            docker run -d --name ma-ticko-app -p 8000:8000 --restart unless-stopped ma-ticko-app
             
-            # Setup Node.js
-            cd ../frontend
-            npm install || echo "npm install failed" >> /var/log/user-data.log
-            npm run build || echo "npm build failed" >> /var/log/user-data.log
-            
-            # Update assets
-            cd ..
-            python3 update_assets.py || echo "update_assets failed" >> /var/log/user-data.log
-            
-            # Configure Django
-            cd backend
-            source venv/bin/activate
-            python manage.py migrate || echo "migrate failed" >> /var/log/user-data.log
-            python manage.py collectstatic --noinput || echo "collectstatic failed" >> /var/log/user-data.log
-            
-            # Start Django with proper error handling
-            echo "Starting Django server..." >> /var/log/user-data.log
-            cd /home/ec2-user/Maticko/dirt_stack/backend
-            source venv/bin/activate
-            nohup python manage.py runserver 0.0.0.0:8000 >> /var/log/django.log 2>&1 &
-            DJANGO_PID=$!
-            echo "Django PID: $DJANGO_PID" >> /var/log/user-data.log
-            
-            # Wait and verify
-            sleep 30
-            if ps -p $DJANGO_PID > /dev/null; then
-                echo "Django process is running" >> /var/log/user-data.log
-            else
-                echo "Django process died, checking logs" >> /var/log/user-data.log
-                tail -20 /var/log/django.log >> /var/log/user-data.log
-            fi
-            
-            echo "Setup complete" >> /var/log/user-data.log
+            echo "Docker setup complete" >> /var/log/user-data.log
         TagSpecifications:
           - ResourceType: instance
             Tags:

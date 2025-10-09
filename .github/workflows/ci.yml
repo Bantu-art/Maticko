@@ -15,59 +15,27 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
     
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: dirt_stack/frontend/package-lock.json
-    
-    - name: Cache Python dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('dirt_stack/backend/requirements.txt') }}
-    
-    - name: Install Python dependencies
+    - name: Test Docker build
       run: |
-        cd dirt_stack/backend
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        docker build -t ma-ticko-test .
+        echo "✅ Docker build successful"
     
-    - name: Install Node dependencies
+    - name: Test container startup
       run: |
-        cd dirt_stack/frontend
-        npm ci
-    
-    - name: Run Django migrations
-      run: |
-        cd dirt_stack/backend
-        python manage.py migrate
-    
-    - name: Build frontend
-      run: |
-        cd dirt_stack/frontend
-        npm run build
-    
-    - name: Setup Django template
-      run: |
-        cd dirt_stack/backend/templates
-        cp app.template.html app.html
-    
-    - name: Update Django assets
-      run: |
-        cd dirt_stack
-        python update_assets.py
-    
-    - name: Collect static files
-      run: |
-        cd dirt_stack/backend
-        python manage.py collectstatic --noinput
+        docker run -d --name test-container -p 8000:8000 ma-ticko-test
+        sleep 10
+        if docker ps | grep -q test-container; then
+          echo "✅ Container started successfully"
+        else
+          echo "❌ Container failed to start"
+          docker logs test-container
+          exit 1
+        fi
+        docker stop test-container
+        docker rm test-container
 
   deploy:
     needs: test-and-build

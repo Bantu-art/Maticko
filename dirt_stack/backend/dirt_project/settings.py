@@ -13,7 +13,7 @@ SECRET_KEY = 'django-insecure-dirt-stack-secret-key-change-in-production'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.9']
+ALLOWED_HOSTS = ['*']  # Allow all hosts for ALB access
 
 # Application definition
 INSTALLED_APPS = [

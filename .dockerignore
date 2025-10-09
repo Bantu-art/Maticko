@@ -1,0 +1,15 @@
+node_modules
+.git
+.github
+infrastructure
+*.md
+.env
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+dirt_stack/frontend/dist
+dirt_stack/backend/staticfiles
+dirt_stack/backend/db.sqlite3
