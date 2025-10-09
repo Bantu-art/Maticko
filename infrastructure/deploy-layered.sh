@@ -63,7 +63,7 @@ delete_stacks() {
     echo "Deleting stacks for environment: $env"
     
     # Delete in reverse order
-    for layer in "database" "application" "networking"; do
+    for layer in "application" "networking"; do
         stack_name="ma-ticko-$env-$layer"
         if aws cloudformation describe-stacks --stack-name "$stack_name" --region "$REGION" >/dev/null 2>&1; then
             echo "Deleting stack: $stack_name"
@@ -140,15 +140,7 @@ deploy_stack \
     "cloudformation/02-application.yaml" \
     "ParameterKey=Environment,ParameterValue=$ENVIRONMENT ParameterKey=GitHubBranch,ParameterValue=$BRANCH ParameterKey=NetworkingStackName,ParameterValue=ma-ticko-$ENVIRONMENT-networking"
 
-# 3. Database Layer
-echo ""
-echo "=== DEPLOYING DATABASE LAYER ==="
-# Generate a random password for the database
-DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
-deploy_stack \
-    "ma-ticko-$ENVIRONMENT-database" \
-    "cloudformation/03-database.yaml" \
-    "ParameterKey=Environment,ParameterValue=$ENVIRONMENT ParameterKey=NetworkingStackName,ParameterValue=ma-ticko-$ENVIRONMENT-networking ParameterKey=DatabasePassword,ParameterValue=$DB_PASSWORD"
+
 
 echo ""
 echo "=== DEPLOYMENT COMPLETE ==="
@@ -164,6 +156,3 @@ ALB_URL=$(aws cloudformation describe-stacks \
 
 echo ""
 echo "Application URL: $ALB_URL"
-echo "Database Password: $DB_PASSWORD"
-echo ""
-echo "IMPORTANT: Save the database password securely!"
