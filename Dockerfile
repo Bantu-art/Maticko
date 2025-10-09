@@ -31,6 +31,9 @@ RUN sed -i "s/ALLOWED_HOSTS = \[.*\]/ALLOWED_HOSTS = ['*']/" dirt_project/settin
 # Copy frontend build from previous stage
 COPY --from=frontend-builder /app/frontend/dist ../frontend/dist/
 
+# Setup Django template
+RUN cp templates/app.template.html templates/app.html
+
 # Copy and run asset update script
 COPY dirt_stack/update_assets.py ../
 RUN python ../update_assets.py
