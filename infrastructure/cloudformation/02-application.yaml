@@ -18,9 +18,10 @@ Parameters:
 Mappings:
   EnvironmentConfig:
     dev:
-      InstanceType: t3.small
-      MinSize: 1
-      MaxSize: 2
+      InstanceType: m7i-flex.large
+      MinSize: 2
+      MaxSize: 3
+      DesiredCapacity: 2
     test:
       InstanceType: t3.small
       MinSize: 1
@@ -80,10 +81,12 @@ Resources:
         Fn::ImportValue: !Sub '${NetworkingStackName}-VPC-ID'
       HealthCheckPath: /
       HealthCheckProtocol: HTTP
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
+      HealthCheckIntervalSeconds: 60
+      HealthCheckTimeoutSeconds: 30
       HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 3
+      UnhealthyThresholdCount: 5
+      Matcher:
+        HttpCode: '200,301,302'
 
   ALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -169,14 +172,14 @@ Resources:
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
       MinSize: !FindInMap [EnvironmentConfig, !Ref Environment, MinSize]
       MaxSize: !FindInMap [EnvironmentConfig, !Ref Environment, MaxSize]
-      DesiredCapacity: !FindInMap [EnvironmentConfig, !Ref Environment, MinSize]
+      DesiredCapacity: !FindInMap [EnvironmentConfig, !Ref Environment, DesiredCapacity]
       VPCZoneIdentifier:
         - Fn::ImportValue: !Sub '${NetworkingStackName}-PrivateSubnet1-ID'
         - Fn::ImportValue: !Sub '${NetworkingStackName}-PrivateSubnet2-ID'
       TargetGroupARNs:
         - !Ref TargetGroup
       HealthCheckType: ELB
-      HealthCheckGracePeriod: 600
+      HealthCheckGracePeriod: 900
       Tags:
         - Key: Name
           Value: !Sub 'ma-ticko-${Environment}-asg'
