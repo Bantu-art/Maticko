@@ -63,26 +63,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ma-ticko-${Environment}-private-2'
 
-  # Database Subnets
-  DatabaseSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: 10.0.5.0/24
-      AvailabilityZone: !Select [0, !GetAZs '']
-      Tags:
-        - Key: Name
-          Value: !Sub 'ma-ticko-${Environment}-db-1'
 
-  DatabaseSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: 10.0.6.0/24
-      AvailabilityZone: !Select [1, !GetAZs '']
-      Tags:
-        - Key: Name
-          Value: !Sub 'ma-ticko-${Environment}-db-2'
 
   # Internet Gateway
   InternetGateway:
@@ -134,13 +115,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ma-ticko-${Environment}-private-rt'
 
-  DatabaseRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub 'ma-ticko-${Environment}-db-rt'
+
 
   # Routes
   PublicRoute:
@@ -183,17 +158,7 @@ Resources:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable
 
-  DatabaseSubnetRouteTableAssociation1:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref DatabaseSubnet1
-      RouteTableId: !Ref DatabaseRouteTable
 
-  DatabaseSubnetRouteTableAssociation2:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref DatabaseSubnet2
-      RouteTableId: !Ref DatabaseRouteTable
 
   # Security Groups
   ALBSecurityGroup:
@@ -228,31 +193,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ma-ticko-${Environment}-app-sg'
 
-  DatabaseSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for Database
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
-          SourceSecurityGroupId: !Ref ApplicationSecurityGroup
-      Tags:
-        - Key: Name
-          Value: !Sub 'ma-ticko-${Environment}-db-sg'
 
-  # Database Subnet Group
-  DatabaseSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties:
-      DBSubnetGroupDescription: Subnet group for RDS database
-      SubnetIds:
-        - !Ref DatabaseSubnet1
-        - !Ref DatabaseSubnet2
-      Tags:
-        - Key: Name
-          Value: !Sub 'ma-ticko-${Environment}-db-subnet-group'
 
 Outputs:
   VPCId:
@@ -297,14 +238,3 @@ Outputs:
     Export:
       Name: !Sub '${AWS::StackName}-ApplicationSecurityGroup-ID'
 
-  DatabaseSecurityGroupId:
-    Description: Database Security Group ID
-    Value: !Ref DatabaseSecurityGroup
-    Export:
-      Name: !Sub '${AWS::StackName}-DatabaseSecurityGroup-ID'
-
-  DatabaseSubnetGroupName:
-    Description: Database Subnet Group Name
-    Value: !Ref DatabaseSubnetGroup
-    Export:
-      Name: !Sub '${AWS::StackName}-DatabaseSubnetGroup-Name'
