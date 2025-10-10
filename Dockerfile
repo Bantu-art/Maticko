@@ -36,7 +36,10 @@ RUN cp templates/app.template.html templates/app.html
 
 # Copy and run asset update script
 COPY dirt_stack/update_assets.py ../
+RUN echo "Before asset update:" && cat templates/app.html
+RUN echo "Frontend dist contents:" && ls -la ../frontend/dist/assets/
 RUN python ../update_assets.py
+RUN echo "After asset update:" && cat templates/app.html
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
