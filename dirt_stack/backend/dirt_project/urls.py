@@ -9,6 +9,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('pages.urls')),
+    path('events/', include('events.urls')),
 ]
 
 # Serve media files (including production for Docker)
