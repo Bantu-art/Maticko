@@ -19,9 +19,9 @@ from pathlib import Path
 def update_template_assets():
     """Update Django template with current asset filenames from Vite manifest."""
     
-    # Paths
-    manifest_path = Path('frontend/dist/.vite/manifest.json')
-    template_path = Path('backend/templates/app.html')
+    # Paths - adjust for Docker container context
+    manifest_path = Path('../frontend/dist/.vite/manifest.json')
+    template_path = Path('templates/app.html')
     
     # Check if manifest exists
     if not manifest_path.exists():
@@ -37,9 +37,26 @@ def update_template_assets():
         return False
     
     # Get asset filenames from manifest
-    main_entry = manifest.get('src/main.jsx', {})
+    # Try different possible entry points
+    main_entry = None
+    for key in ['src/main.jsx', 'src/main.js', 'main.jsx', 'main.js']:
+        if key in manifest:
+            main_entry = manifest[key]
+            break
+    
+    if not main_entry:
+        # If no main entry found, use the first entry
+        if manifest:
+            main_entry = list(manifest.values())[0]
+        else:
+            print("❌ No entries found in manifest")
+            return False
+    
     js_file = main_entry.get('file', '')
     css_files = main_entry.get('css', [])
+    
+    print(f"📋 Manifest entries: {list(manifest.keys())}")
+    print(f"📦 Using entry: {main_entry}")
     
     if not js_file:
         print("❌ No main.jsx entry found in manifest")
@@ -63,15 +80,14 @@ def update_template_assets():
         print(f"❌ Error reading template: {e}")
         return False
     
-    # Update CSS reference (manifest already includes 'assets/' prefix)
-    css_pattern = r"<link rel=\"stylesheet\" href=\"{% static 'assets/main-[^']+\.css' %}\">"
-    css_replacement = f"<link rel=\"stylesheet\" href=\"{{% static '{css_file}' %}}\">"
-    template_content = re.sub(css_pattern, css_replacement, template_content)
+    # Update CSS reference - match PLACEHOLDER format
+    css_pattern = r"{% static 'assets/main-PLACEHOLDER\.css' %}"
+    css_replacement = f"{{% static '{css_file}' %}}"
+    template_content = template_content.replace("{% static 'assets/main-PLACEHOLDER.css' %}", css_replacement)
 
-    # Update JS reference (manifest already includes 'assets/' prefix)
-    js_pattern = r"<script type=\"module\" src=\"{% static 'assets/main-[^']+\.js' %}\"></script>"
-    js_replacement = f"<script type=\"module\" src=\"{{% static '{js_file}' %}}\"></script>"
-    template_content = re.sub(js_pattern, js_replacement, template_content)
+    # Update JS reference - match PLACEHOLDER format  
+    js_replacement = f"{{% static '{js_file}' %}}"
+    template_content = template_content.replace("{% static 'assets/main-PLACEHOLDER.js' %}", js_replacement)
     
     # Write updated template
     try:
