@@ -11,6 +11,5 @@ urlpatterns = [
     path('', include('pages.urls')),
 ]
 
-# Serve media files during development
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files (including production for Docker)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
