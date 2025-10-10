@@ -136,9 +136,14 @@ Resources:
             git checkout ${GitHubBranch}
             
             # Build Docker image
-            docker build -t ma-ticko-app .
+            echo "Building Docker image..." >> /var/log/user-data.log
+            docker build -t ma-ticko-app . >> /var/log/user-data.log 2>&1
+            
+            # Verify template file exists in image
+            docker run --rm ma-ticko-app ls -la templates/ >> /var/log/user-data.log 2>&1
             
             # Run Docker container
+            echo "Starting Docker container..." >> /var/log/user-data.log
             docker run -d --name ma-ticko-app -p 8000:8000 --restart unless-stopped ma-ticko-app
             
             echo "Docker setup complete" >> /var/log/user-data.log
