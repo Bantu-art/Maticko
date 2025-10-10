@@ -28,8 +28,10 @@ COPY dirt_stack/backend/ ./
 # Fix ALLOWED_HOSTS for container deployment
 RUN sed -i "s/ALLOWED_HOSTS = \[.*\]/ALLOWED_HOSTS = ['*']/" dirt_project/settings.py
 
-# Copy media files
-COPY dirt_stack/backend/media ./media/
+# Create media directory and copy files
+RUN mkdir -p ./media
+COPY dirt_stack/backend/media/*.png ./media/
+COPY dirt_stack/backend/media/*.svg ./media/
 
 # Copy frontend build from previous stage
 COPY --from=frontend-builder /app/frontend/dist ../frontend/dist/
