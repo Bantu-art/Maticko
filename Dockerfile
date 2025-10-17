@@ -43,6 +43,14 @@ RUN echo "Frontend dist contents:" && ls -la ../frontend/dist/assets/
 RUN python ../update_assets.py
 RUN echo "After asset update:" && cat templates/app.html
 
+# Run migrations
+RUN python manage.py makemigrations
+RUN python manage.py migrate
+
+# Run migrations
+RUN python manage.py makemigrations
+RUN python manage.py migrate
+
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
