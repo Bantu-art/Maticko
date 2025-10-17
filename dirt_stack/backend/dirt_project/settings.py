@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'inertia',
     'pages',  # Our main app
+    'events',  # Events app
 ]
 
 MIDDLEWARE = [

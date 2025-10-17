@@ -21,16 +21,16 @@ jobs:
     - name: Test Docker build
       run: |
         docker build -t ma-ticko-test .
-        echo "✅ Docker build successful"
+        echo "Docker build successful"
     
     - name: Test container startup
       run: |
         docker run -d --name test-container -p 8000:8000 ma-ticko-test
         sleep 10
         if docker ps | grep -q test-container; then
-          echo "✅ Container started successfully"
+          echo "Container started successfully"
         else
-          echo "❌ Container failed to start"
+          echo "Container failed to start"
           docker logs test-container
           exit 1
         fi
@@ -73,9 +73,9 @@ jobs:
     
     - name: Update deployment status
       run: |
-        echo "🚀 Deployed to ${{ steps.env.outputs.environment }} environment"
-        echo "📍 Branch: ${{ github.ref_name }}"
-        echo "🔗 Commit: ${{ github.sha }}"
+        echo "Deployed to ${{ steps.env.outputs.environment }} environment"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
 
   notify:
     needs: [test-and-build, deploy]
@@ -86,7 +86,7 @@ jobs:
     - name: Deployment notification
       run: |
         if [ "${{ needs.deploy.result }}" == "success" ]; then
-          echo "✅ Deployment successful to ${{ steps.env.outputs.environment }}"
+          echo "Deployment successful to ${{ steps.env.outputs.environment }}"
         else
-          echo "❌ Deployment failed"
+          echo "Deployment failed"
         fi
