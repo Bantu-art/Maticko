@@ -18,7 +18,7 @@ Parameters:
 Mappings:
   EnvironmentConfig:
     dev:
-      InstanceType: m7i-flex.large
+      InstanceType: t3.small
       MinSize: 2
       MaxSize: 3
       DesiredCapacity: 2
@@ -27,7 +27,7 @@ Mappings:
       MinSize: 1
       MaxSize: 3
     prod:
-      InstanceType: t3.medium
+      InstanceType: t3.small
       MinSize: 2
       MaxSize: 6
 
